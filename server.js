@@ -1,9 +1,19 @@
 const express = require('express');
-const db = require('./db'); // Importamos la conexión
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+
+// 🔥 MOVER AQUÍ EL ESCUCHA DEL PUERTO (Al principio, antes de MySQL)
+app.listen(PORT, () => {
+  console.log(`==================================================`);
+  console.log(`🚀 SERVIDOR EN REGLA: Escuchando en el puerto ${PORT}`);
+  console.log(`==================================================`);
+});
+
+// Importar la conexión después para que no bloquee el encendido
+const db = require('./db'); 
+
 
 // GET: Obtener todos los rodamientos con sus detalles técnicos
 app.get('/api/rodamientos', async (req, res) => {
