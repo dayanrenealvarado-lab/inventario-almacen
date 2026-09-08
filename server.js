@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('./db'); // Importamos la conexión
 const app = express();
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
