@@ -84,42 +84,6 @@ app.post('/api/retenedores', async (req, res) => {
   }
 });
 
-  // Obtener una conexión del pool para manejar la transacción manualmente
-  const connection = await db.getConnection();
-  
-  try {
-    // Iniciar transacción para asegurar consistencia en ambas tablas
-    await connection.beginTransaction();
-
-    // 1. Insertar en la tabla base (productos) especificando el tipo 'retenedor'
-    const queryProducto = `
-      INSERT INTO productos (codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, tipo_producto) 
-      VALUES (?, ?, ?, ?, ?, 'retenedor')
-    `;
-    const [resultProducto] = await connection.query(queryProducto, [codigo, marca, stock_actual, stock_minimo, ubicacion_almacen]);
-    
-    const nuevoId = resultProducto.insertId;
-
-    // 2. Insertar en la tabla específica (retenedores) usando el ID recién creado
-    const queryRetenedor = `
-      INSERT INTO retenedores (producto_id, diametro_interno_mm, diametro_externo_mm, altura_mm, material) 
-      VALUES (?, ?, ?, ?, ?)
-    `;
-    await connection.query(queryRetenedor, [nuevoId, diametro_interno_mm, diametro_externo_mm, altura_mm, material]);
-
-    // Confirmar los cambios si todo salió bien
-    await connection.commit();
-
-    res.status(201).json({ mensaje: "Retenedor registrado con éxito", id: nuevoId });
-  } catch (error) {
-    // Cancelar cualquier cambio si ocurre un error
-    await connection.rollback();
-    res.status(500).json({ error: "Error al registrar el retenedor", detalle: error.message });
-  } finally {
-    // Siempre liberar la conexión de vuelta al pool
-    connection.release();
-  }
-});
 // GET: Obtener el listado de la tabla migrada retenedores_4_5_10
 app.get('/api/retenedores-medidas', async (req, res) => {
   try {
