@@ -51,24 +51,15 @@ app.post('/api/rodamientos', async (req, res) => {
     res.status(500).json({ error: "Error al registrar el rodamiento", detalle: error.message });
   }
 });
-
-
-
-
-
 // ==========================================
-// ENDPOINTS PARA RETENEDORES
+// ENDPOINTS PARA RETENEDORES (ACTUALIZADO)
 // ==========================================
 
-// GET: Obtener todos los retenedores con sus especificaciones técnicas
+// GET: Obtener todos los retenedores desde la tabla real en la base de datos
 app.get('/api/retenedores', async (req, res) => {
   try {
-    const query = `
-      SELECT p.id, p.codigo, p.marca, p.stock_actual, p.stock_minimo, p.ubicacion_almacen,
-             ret.diametro_interno_mm, ret.diametro_externo_mm, ret.altura_mm, ret.material
-      FROM productos p
-      INNER JOIN retenedores ret ON p.id = ret.producto_id
-    `;
+    // Cambiamos la consulta para que lea directamente la tabla existente
+    const query = 'SELECT * FROM retenedores_4_5_10';
     const [rows] = await db.query(query);
     res.status(200).json(rows);
   } catch (error) {
@@ -76,27 +67,22 @@ app.get('/api/retenedores', async (req, res) => {
   }
 });
 
-// POST: Registrar un nuevo retenedor utilizando transacciones
+// POST: Registrar un nuevo retenedor en la tabla real
 app.post('/api/retenedores', async (req, res) => {
-  const { 
-    codigo, 
-    marca, 
-    stock_actual, 
-    stock_minimo, 
-    ubicacion_almacen, 
-    diametro_interno_mm, 
-    diametro_externo_mm, 
-    altura_mm, 
-    material 
-  } = req.body;
+  const { codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, diametro_interno_mm, diametro_externo_mm, altura_mm, material } = req.body;
   
-
-
-
-
-
-
-
+  try {
+    const query = `
+      INSERT INTO retenedores_4_5_10 (codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, diametro_interno_mm, diametro_externo_mm, altura_mm, material) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const [result] = await db.query(query, [codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, diametro_interno_mm, diametro_externo_mm, altura_mm, material]);
+    
+    res.status(201).json({ mensaje: "Retenedor registrado con éxito", id: result.insertId });
+  } catch (error) {
+    res.status(500).json({ error: "Error al registrar el retenedor", detalle: error.message });
+  }
+});
 
   // Obtener una conexión del pool para manejar la transacción manualmente
   const connection = await db.getConnection();
