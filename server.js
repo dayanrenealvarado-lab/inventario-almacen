@@ -15,7 +15,7 @@ app.listen(PORT, () => {
 const db = require('./db'); 
 
 
-// GET: Obtener todos los rodamientos con sus detalles técnicos
+// GET: Obtener todos los rodamientos unificados con la tabla productos
 app.get('/api/rodamientos', async (req, res) => {
   try {
     const query = `
