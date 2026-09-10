@@ -52,6 +52,10 @@ app.post('/api/rodamientos', async (req, res) => {
   }
 });
 
+
+
+
+
 // ==========================================
 // ENDPOINTS PARA RETENEDORES
 // ==========================================
@@ -86,6 +90,14 @@ app.post('/api/retenedores', async (req, res) => {
     material 
   } = req.body;
   
+
+
+
+
+
+
+
+
   // Obtener una conexión del pool para manejar la transacción manualmente
   const connection = await db.getConnection();
   
