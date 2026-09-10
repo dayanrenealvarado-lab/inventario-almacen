@@ -84,13 +84,3 @@ app.post('/api/retenedores', async (req, res) => {
   }
 });
 
-// GET: Obtener el listado de la tabla migrada retenedores_4_5_10
-app.get('/api/retenedores-medidas', async (req, res) => {
-  try {
-    const query = 'SELECT * FROM retenedores_4_5_10';
-    const [rows] = await db.query(query);
-    res.status(200).json(rows);
-  } catch (error) {
-    res.status(500).json({ error: "Error al obtener retenedores por medidas", detalle: error.message });
-  }
-});
