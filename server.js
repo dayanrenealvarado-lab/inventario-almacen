@@ -83,4 +83,71 @@ app.post('/api/retenedores', async (req, res) => {
     res.status(500).json({ error: "Error al registrar el retenedor", detalle: error.message });
   }
 });
+// ==========================================
+// ENDPOINTS DE ACTUALIZACIÓN (PUT)
+// ==========================================
+
+// PUT: Actualizar un retenedor específico por su ID
+app.put('/api/retenedores/:id', async (req, res) => {
+  const { id } = req.params;
+  const { codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, diametro_interno_mm, diametro_externo_mm, altura_mm, material } = req.body;
+  
+  try {
+    const query = `
+      UPDATE retenedores_4_5_10 
+      SET codigo = ?, marca = ?, stock_actual = ?, stock_minimo = ?, ubicacion_almacen = ?, diametro_interno_mm = ?, diametro_externo_mm = ?, altura_mm = ?, material = ?
+      WHERE id = ?
+    `;
+    const [result] = await db.query(query, [codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, diametro_interno_mm, diametro_externo_mm, altura_mm, material, id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Retenedor no encontrado" });
+    }
+    
+    res.status(200).json({ mensaje: "Retenedor actualizado con éxito" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al actualizar el retenedor", detalle: error.message });
+  }
+});
+
+// ==========================================
+// ENDPOINTS DE ELIMINACIÓN (DELETE)
+// ==========================================
+
+// DELETE: Eliminar un retenedor específico por su ID
+app.delete('/api/retenedores/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    const query = 'DELETE FROM retenedores_4_5_10 WHERE id = ?';
+    const [result] = await db.query(query, [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Retenedor no encontrado" });
+    }
+    
+    res.status(200).json({ mensaje: "Retenedor eliminado del almacén con éxito" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al eliminar el retenedor", detalle: error.message });
+  }
+});
+
+// DELETE: Eliminar un rodamiento por su ID (Borra en cascada en la tabla rodamientos automáticamente gracias a la FK)
+app.delete('/api/rodamientos/:id', async (req, res) => {
+  const { id } = req.params;
+  
+  try {
+    // Al borrar el producto padre, MySQL elimina al hijo en la tabla rodamientos por el ON DELETE CASCADE
+    const query = 'DELETE FROM productos WHERE id = ?';
+    const [result] = await db.query(query, [id]);
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Rodamiento no encontrado" });
+    }
+    
+    res.status(200).json({ mensaje: "Rodamiento eliminado del almacén con éxito" });
+  } catch (error) {
+    res.status(500).json({ error: "Error al eliminar el rodamiento", detalle: error.message });
+  }
+});
 
