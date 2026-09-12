@@ -110,7 +110,7 @@ app.put('/api/retenedores/:id', async (req, res) => {
   }
 });
 
-// PUT: Actualizar un rodamiento específico por su ID (Modifica ambas tablas de forma segura)
+// PUT: Actualizar un rodamiento específico por su ID
 app.put('/api/rodamientos/:id', async (req, res) => {
   const { id } = req.params;
   const { 
@@ -118,14 +118,10 @@ app.put('/api/rodamientos/:id', async (req, res) => {
     diametro_interno_mm, diametro_externo_mm, ancho_mm, tipo_sellado 
   } = req.body;
   
-  // Obtenemos una conexión exclusiva para manejar la transacción
   const connection = await db.getConnection();
-  
   try {
-    // Iniciamos la transacción
     await connection.beginTransaction();
 
-    // 1. Actualizar la tabla padre (productos)
     const queryProducto = `
       UPDATE productos 
       SET codigo = ?, marca = ?, stock_actual = ?, stock_minimo = ?, ubicacion_almacen = ?
@@ -135,32 +131,24 @@ app.put('/api/rodamientos/:id', async (req, res) => {
       codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, id
     ]);
     
-    // Si no afectó filas en productos, el rodamiento no existe
     if (resultProducto.affectedRows === 0) {
       await connection.rollback();
-      return res.status(404).json({ error: "Rodamiento no encontrado en el sistema" });
+      return res.status(404).json({ error: "Rodamiento no encontrado" });
     }
     
-    // 2. Actualizar la tabla hija (rodamientos) utilizando el mismo ID
     const queryRodamiento = `
       UPDATE rodamientos 
       SET diametro_interno_mm = ?, diametro_externo_mm = ?, ancho_mm = ?, tipo_sellado = ?
       WHERE producto_id = ?
     `;
-    await connection.query(queryRodamiento, [
-      diametro_interno_mm, diametro_externo_mm, ancho_mm, tipo_sellado, id
-    ]);
+    await connection.query(queryRodamiento, [diametro_interno_mm, diametro_externo_mm, ancho_mm, tipo_sellado, id]);
     
-    // Guardamos definitivamente los cambios en la base de datos
     await connection.commit();
     res.status(200).json({ mensaje: "Rodamiento actualizado con éxito en ambas tablas" });
-
   } catch (error) {
-    // Si algo falla, cancelamos todos los cambios hechos en este intento
     await connection.rollback();
     res.status(500).json({ error: "Error al actualizar el rodamiento", detalle: error.message });
   } finally {
-    // Siempre liberamos la conexión de vuelta al pool
     connection.release();
   }
 });
