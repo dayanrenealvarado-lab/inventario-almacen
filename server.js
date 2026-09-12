@@ -1,19 +1,28 @@
+// Importa el framework Express para construir el servidor y las rutas de la API
 const express = require('express');
+
+// Inicializa la aplicación de Express para empezar a configurar el backend
 const app = express();
+
+// Define el puerto del servidor: usa el del sistema operativo o el 3000 por defecto
 const PORT = process.env.PORT || 3000;
 
+// Middleware para procesar solicitudes en formato JSON
 app.use(express.json());
 
-// 🔥 MOVER AQUÍ EL ESCUCHA DEL PUERTO (Al principio, antes de MySQL)
+// Inicia el servidor antes de conectar la base de datos para evitar bloqueos
 app.listen(PORT, () => {
   console.log(`==================================================`);
   console.log(`🚀 SERVIDOR EN REGLA: Escuchando en el puerto ${PORT}`);
   console.log(`==================================================`);
 });
 
-// Importar la conexión después para que no bloquee el encendido
+// Importar la conexión a la base de datos MySQL
 const db = require('./db'); 
 
+// ==========================================
+// ENDPOINTS PARA RODAMIENTOS
+// ==========================================
 
 // GET: Obtener todos los rodamientos unificados con la tabla productos
 app.get('/api/rodamientos', async (req, res) => {
@@ -36,13 +45,14 @@ app.post('/api/rodamientos', async (req, res) => {
   const { codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, diametro_interno_mm, diametro_externo_mm, ancho_mm, tipo_sellado } = req.body;
   
   try {
-    // Insertar primero en la tabla padre (productos)
+    // 1. Insertar primero en la tabla padre (productos)
     const queryProducto = `INSERT INTO productos (codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, tipo_producto) VALUES (?, ?, ?, ?, ?, 'rodamiento')`;
     const [resultProducto] = await db.query(queryProducto, [codigo, marca, stock_actual, stock_minimo, ubicacion_almacen]);
     
+    // Obtiene el ID generado automáticamente para el nuevo producto
     const nuevoId = resultProducto.insertId;
 
-    // Insertar en la tabla hija (rodamientos) usando el ID generado
+    // 2. Insertar en la tabla hija (rodamientos) usando el ID generado
     const queryRodamiento = `INSERT INTO rodamientos (producto_id, diametro_interno_mm, diametro_externo_mm, ancho_mm, tipo_sellado) VALUES (?, ?, ?, ?, ?)`;
     await db.query(queryRodamiento, [nuevoId, diametro_interno_mm, diametro_externo_mm, ancho_mm, tipo_sellado]);
 
@@ -52,10 +62,10 @@ app.post('/api/rodamientos', async (req, res) => {
   }
 });
 // ==========================================
-// ENDPOINTS PARA RETENEDORES (ACTUALIZADO)
+// ENDPOINTS PARA RETENEDORES
 // ==========================================
 
-// GET: Obtener todos los retenedores desde la tabla real en la base de datos
+// GET: Obtiene todos los retenedores directo desde su tabla física de medidas
 app.get('/api/retenedores', async (req, res) => {
   try {
     // Cambiamos la consulta para que lea directamente la tabla existente
@@ -67,7 +77,7 @@ app.get('/api/retenedores', async (req, res) => {
   }
 });
 
-// POST: Registrar un nuevo retenedor en la tabla real
+// POST: Registrar un nuevo retenedor directamente en su tabla correspondiente
 app.post('/api/retenedores', async (req, res) => {
   const { codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, diametro_interno_mm, diametro_externo_mm, altura_mm, material } = req.body;
   
@@ -100,6 +110,7 @@ app.put('/api/retenedores/:id', async (req, res) => {
     `;
     const [result] = await db.query(query, [codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, diametro_interno_mm, diametro_externo_mm, altura_mm, material, id]);
     
+    // Si no se modificó ninguna fila, significa que el ID no existía
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Retenedor no encontrado" });
     }
@@ -110,7 +121,7 @@ app.put('/api/retenedores/:id', async (req, res) => {
   }
 });
 
-// PUT: Actualizar un rodamiento específico por su ID
+// PUT: Actualiza un rodamiento usando una transacción para modificar las dos tablas juntas
 app.put('/api/rodamientos/:id', async (req, res) => {
   const { id } = req.params;
   const { 
@@ -118,10 +129,14 @@ app.put('/api/rodamientos/:id', async (req, res) => {
     diametro_interno_mm, diametro_externo_mm, ancho_mm, tipo_sellado 
   } = req.body;
   
+  // Solicita una conexión dedicada para poder gestionar la transacción
   const connection = await db.getConnection();
   try {
+
+    // Inicia la transacción: si algo falla de aquí en adelante, nada se guarda
     await connection.beginTransaction();
 
+    // 1. Actualiza los datos de almacén en la tabla padre (productos)
     const queryProducto = `
       UPDATE productos 
       SET codigo = ?, marca = ?, stock_actual = ?, stock_minimo = ?, ubicacion_almacen = ?
@@ -131,11 +146,13 @@ app.put('/api/rodamientos/:id', async (req, res) => {
       codigo, marca, stock_actual, stock_minimo, ubicacion_almacen, id
     ]);
     
+    // Si el ID no existe, cancela todo el proceso inmediatamente (Rollback)
     if (resultProducto.affectedRows === 0) {
       await connection.rollback();
       return res.status(404).json({ error: "Rodamiento no encontrado" });
     }
     
+    // 2. Actualiza los datos específicos del rodamiento en la tabla hija (rodamientos)
     const queryRodamiento = `
       UPDATE rodamientos 
       SET diametro_interno_mm = ?, diametro_externo_mm = ?, ancho_mm = ?, tipo_sellado = ?
@@ -143,12 +160,17 @@ app.put('/api/rodamientos/:id', async (req, res) => {
     `;
     await connection.query(queryRodamiento, [diametro_interno_mm, diametro_externo_mm, ancho_mm, tipo_sellado, id]);
     
+    // Confirma y consolida de forma permanente los cambios en la base de datos
     await connection.commit();
     res.status(200).json({ mensaje: "Rodamiento actualizado con éxito en ambas tablas" });
   } catch (error) {
+    
+    // Cancela cualquier cambio realizado en este intento si se produce una falla
     await connection.rollback();
     res.status(500).json({ error: "Error al actualizar el rodamiento", detalle: error.message });
   } finally {
+    
+    // Libera y regresa la conexión al pool para que pueda ser reutilizada
     connection.release();
   }
 });
@@ -157,7 +179,7 @@ app.put('/api/rodamientos/:id', async (req, res) => {
 // ENDPOINTS DE ELIMINACIÓN (DELETE)
 // ==========================================
 
-// DELETE: Eliminar un retenedor específico por su ID
+// DELETE: Eliminar un retenedor específico de la base de datos por su ID
 app.delete('/api/retenedores/:id', async (req, res) => {
   const { id } = req.params;
   
