@@ -2,8 +2,10 @@ const { defineConfig } = require("cypress");
 
 module.exports = defineConfig({
   e2e: {
+    baseUrl: 'http://localhost:3000', // Es buena práctica definirlo aquí
+    chromeWebSecurity: false, // Desactiva restricciones de seguridad de Chrome
     setupNodeEvents(on, config) {
-      // implement node event listeners here
+      // Tu configuración de MySQL u otros plugins 
     },
   },
 });
