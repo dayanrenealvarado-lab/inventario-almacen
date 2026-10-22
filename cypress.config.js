@@ -1,3 +1,23 @@
+const mysql = require('mysql2');
+
+const { defineConfig } = require("cypress");
+
+module.exports = defineConfig({
+  e2e: {
+    setupNodeEvents(on, config) {
+      // Tu configuración de MySQL u otros plugins
+      mysql.configure({
+        host: 'localhost',
+        user: 'root',
+        password: 'tu_password',
+        database: 'inventario_almacen_v2'
+      });
+      
+      return config;
+      },
+  },
+});  
+
 const { defineConfig } = require("cypress");
 
 module.exports = defineConfig({
@@ -6,12 +26,6 @@ module.exports = defineConfig({
     chromeWebSecurity: false, // Desactiva restricciones de seguridad de Chrome
     setupNodeEvents(on, config) {
       // Tu configuración de MySQL u otros plugins
-      mysql.configure({
-        host: 'localhost',
-        user: 'root',
-        password: 'tu_password',
-        database: 'inventario_almacen_v2'
-      }, on); 
     },
   },
 });
