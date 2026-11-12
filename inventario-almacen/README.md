@@ -1,38 +1,54 @@
-# inventario-almacen
+# Inventario Almacén
 
-This template should help get you started developing with Vue 3 in Vite.
+## Instalación
 
-## Recommended IDE Setup
+Instala las dependencias del frontend y de la API:
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
-
-## Recommended Browser Setup
-
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd)
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
-
-## Customize configuration
-
-See [Vite Configuration Reference](https://vite.dev/config/).
-
-## Project Setup
-
-```sh
+```powershell
+npm install
+cd inventario-api
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+La API requiere `inventario-api/.env` con estas variables:
 
-```sh
+```text
+ADMIN_USER=usuario_administrador
+ADMIN_PASSWORD_HASH=hash_bcrypt_de_la_contrasena
+SESSION_SECRET=secreto_largo_y_aleatorio
+```
+
+`ADMIN_PASSWORD_HASH` debe contener un hash bcrypt, no la contraseña en texto
+plano. No compartas ni subas el archivo `.env` al repositorio.
+
+## Iniciar en desarrollo
+
+Abre dos terminales en Ubuntu desde la carpeta del proyecto. En la primera,
+inicia la API:
+
+```bash
+cd inventario-api
+npm start
+```
+
+En la segunda, inicia Vue:
+
+```bash
 npm run dev
 ```
 
-### Compile and Minify for Production
+Vite escucha en la interfaz de red de la VM y reenvía las solicitudes `/api`
+a la API local. Desde Windows, abre `http://IP_DE_LA_VM:5173`; puedes consultar
+la IP de Ubuntu con `hostname -I`. Si el firewall de Ubuntu está activo, permite
+el acceso desde el host a TCP 5173. No es necesario exponer el puerto 3000.
 
-```sh
+Inicia sesión con el usuario y la contraseña configurados para la API.
+
+La API valida las credenciales, mantiene la sesión mediante una cookie HTTP-only
+y rechaza las rutas del inventario si no hay una sesión autenticada.
+
+## Compilar para producción
+
+```powershell
 npm run build
 ```
